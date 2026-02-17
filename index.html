@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>32 Village Tracker - Saurabh Kumar</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #map { height: 100vh; width: 100%; }
+        .nav-btn { display: block; margin-top: 10px; padding: 10px; background: #4285F4; color: white !important; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .user-dot { background: #007bff; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var map = L.map('map').setView([26.36, 83.75], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Live Location tracking
+    var userMarker;
+    map.on('locationfound', function(e) {
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.marker(e.latlng, {icon: L.divIcon({className: 'user-dot'})}).addTo(map);
+    });
+    map.locate({watch: true, enableHighAccuracy: true});
+
+    // Sare 32 villages ka data
+    var villages = [
+        {n: "MOHRA", c: [26.3414606, 83.630171]}, {n: "GANDER", c: [26.4003528, 83.7946722]},
+        {n: "PIPARA KHEMKARAN", c: [26.3668061, 83.809102]}, {n: "BIRPURMISIR", c: [26.3605785, 83.8257077]},
+        {n: "SERWAONBHANAULI", c: [26.3685501, 83.8305524]}, {n: "AMRITKUNDA", c: [26.3542772, 83.8142119]},
+        {n: "POKHAR BHINDA", c: [26.3450419, 83.8005519]}, {n: "MARKARA", c: [26.3221854, 83.7983656]},
+        {n: "AJAIPURA", c: [26.3785429, 83.6997074]}, {n: "NAIPUR", c: [26.3575165, 83.7010037]},
+        {n: "HARNAHI", c: [26.3582377, 83.6849608]}, {n: "HANAUTA", c: [26.3619095, 83.6732463]},
+        {n: "DUMARI", c: [26.3697109, 83.754739]}, {n: "BHALUANI", c: [26.3671337, 83.7689413]},
+        {n: "HARDEORA", c: [26.3436546, 83.7169443]}, {n: "SONHULI", c: [26.327494, 83.706788]},
+        {n: "SONAGHATI", c: [26.3229243, 83.7121651]}, {n: "BANDEORA", c: [26.3211516, 83.7226503]},
+        {n: "SOHAGPUR", c: [26.307567, 83.743179]}, {n: "JAMUI", c: [26.3021021, 83.7592471]},
+        {n: "BAHERA", c: [26.3014872, 83.7845722]}, {n: "BAHERI", c: [26.3087093, 83.7744318]},
+        {n: "TARIYA GAON", c: [26.3117565, 83.7634026]}, {n: "TELIA AFAL", c: [26.3263544, 83.7516757]},
+        {n: "MALHAN PAR", c: [26.3353457, 83.7505872]}, {n: "BARAIPUR", c: [26.348239, 83.751333]},
+        {n: "MANIK PUR", c: [26.3468087, 83.7583794]}, {n: "MUNDERA", c: [26.3469792, 83.7712154]},
+        {n: "CHAKIA", c: [26.3516314, 83.7801332]}, {n: "BAKULARI", c: [26.3551989, 83.7915234]},
+        {n: "PINDRA", c: [26.3570073, 83.7987258]}, {n: "SARAYAN", c: [26.3371693, 83.7852449]}
+    ];
+
+    villages.forEach(function(v) {
+        var gUrl = "https://www.google.com/maps/dir/?api=1&destination=" + v.c[0] + "," + v.c[1];
+        L.marker(v.c, {icon: L.divIcon({html: '<div style="background:red;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>', className:''})})
+        .addTo(map).bindPopup("<b>Gaon: " + v.n + "</b><br><a href='" + gUrl + "' target='_blank' class='nav-btn'>Rasta Dekhein (Navigation)</a>");
+    });
+</script>
+</body>
+</html>
