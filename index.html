@@ -1,103 +1,71 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <title>Saurabh Advanced Village Tracker</title>
+    <title>Saurabh Village Map - Fixed Names</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        /* Search Bar Style */
         .search-container {
             position: absolute; top: 10px; left: 50px; z-index: 1000;
             background: white; padding: 5px; border-radius: 8px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; gap: 5px;
         }
-        #villageSearch { 
-            padding: 10px; border: 1px solid #ddd; border-radius: 5px; 
-            width: 180px; font-size: 14px; outline: none;
-        }
+        #villageSearch { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 180px; font-size: 14px; outline: none; }
         
-        /* Popup Buttons & Info */
-        .nav-btn { 
-            display: block; margin-top: 10px; padding: 10px; 
-            background: #4285F4; color: white !important; 
-            text-align: center; text-decoration: none; 
-            border-radius: 5px; font-weight: bold; font-size: 14px; 
+        /* Village Name Label (Black Color & Auto Size) */
+        .village-label {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: black !important;
+            font-weight: bold !important;
+            font-size: 12px !important; /* Perfect size for mobile */
+            text-shadow: 1px 1px 2px white; /* Taki satellite view par bhi saaf dikhe */
         }
-        .distance-info { 
-            color: #d32f2f; font-weight: bold; font-size: 13px; 
-            margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;
-        }
-        
-        /* Blue Dot for Live Location */
-        .user-dot { 
-            background: #007bff; width: 15px; height: 15px; 
-            border-radius: 50%; border: 2px solid white; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
-        }
+
+        .nav-btn { display: block; margin-top: 10px; padding: 10px; background: #4285F4; color: white !important; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        .distance-info { color: #d32f2f; font-weight: bold; font-size: 13px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px; }
+        .user-dot { background: #007bff; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
 <div class="search-container">
-    <input type="text" id="villageSearch" placeholder="Gaon ka naam khojein..." onkeyup="searchVillage()">
+    <input type="text" id="villageSearch" placeholder="Gaon khojein..." onkeyup="searchVillage()">
 </div>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-    // 1. Map Layers Setup (Normal & Satellite)
-    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-        attribution: '© OpenStreetMap' 
-    });
-    
-    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-    });
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
+    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellite' });
 
-    var map = L.map('map', {
-        center: [26.34, 83.75],
-        zoom: 11,
-        layers: [osm] 
-    });
+    var map = L.map('map', { center: [26.34, 83.75], zoom: 11, layers: [osm] });
 
-    var baseMaps = {
-        "Normal Road Map": osm,
-        "Satellite View": satellite
-    };
+    var baseMaps = { "Normal Map": osm, "Satellite View": satellite };
     L.control.layers(baseMaps).addTo(map);
 
-    // 2. Distance Calculation Logic
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371; // Earth Radius in KM
+        var R = 6371;
         var dLat = (lat2-lat1) * Math.PI / 180;
         var dLon = (lon2-lon1) * Math.PI / 180;
-        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return (R * c).toFixed(2); 
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
     }
 
-    // 3. Live Location Tracking
     var userMarker, userLatLng;
     map.on('locationfound', function(e) {
         userLatLng = e.latlng;
         if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker(e.latlng, { 
-            icon: L.divIcon({className: 'user-dot'}) 
-        }).addTo(map).bindPopup("Aap Yahan Hain");
+        userMarker = L.marker(e.latlng, { icon: L.divIcon({className: 'user-dot'}) }).addTo(map).bindPopup("Aap Yahan Hain");
     });
-
     map.locate({watch: true, enableHighAccuracy: true});
 
-    // 4. Village Data (Total 32 Villages)
     var villages = [
         {n: "MOHRA", c: [26.3414606, 83.630171]}, {n: "GANDER", c: [26.4003528, 83.7946722]},
         {n: "PIPARA KHEMKARAN", c: [26.3668061, 83.809102]}, {n: "BIRPURMISIR", c: [26.3605785, 83.8257077]},
@@ -123,11 +91,20 @@
         var gMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + v.c[0] + "," + v.c[1];
         
         var redDot = L.divIcon({
-            html: '<div style="background:red; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>',
-            className: '', iconSize: [12, 12]
+            html: '<div style="background:red; width:10px; height:10px; border-radius:50%; border:2px solid white;"></div>',
+            className: '', iconSize: [10, 10]
         });
 
         var marker = L.marker(v.c, {icon: redDot}).addTo(map);
+        
+        // --- NAME ALWAYS VISIBLE ---
+        marker.bindTooltip(v.n, {
+            permanent: true, 
+            direction: 'top', 
+            className: 'village-label',
+            offset: [0, -8]
+        });
+
         markers.push({name: v.n, marker: marker});
 
         marker.on('click', function() {
@@ -139,7 +116,6 @@
         });
     });
 
-    // 5. Search Functionality
     function searchVillage() {
         var term = document.getElementById('villageSearch').value.toUpperCase();
         markers.forEach(function(item) {
@@ -150,6 +126,5 @@
         });
     }
 </script>
-
 </body>
 </html>
