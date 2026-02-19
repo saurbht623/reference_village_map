@@ -1,74 +1,155 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-    <title>32 Village Tracker - Saurabh Kumar</title>
+    <title>Saurabh Advanced Village Tracker</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
-        .nav-btn { display: block; margin-top: 10px; padding: 10px; background: #4285F4; color: white !important; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        .user-dot { background: #007bff; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        
+        /* Search Bar Style */
+        .search-container {
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
+            background: white; padding: 5px; border-radius: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; gap: 5px;
+        }
+        #villageSearch { 
+            padding: 10px; border: 1px solid #ddd; border-radius: 5px; 
+            width: 180px; font-size: 14px; outline: none;
+        }
+        
+        /* Popup Buttons & Info */
+        .nav-btn { 
+            display: block; margin-top: 10px; padding: 10px; 
+            background: #4285F4; color: white !important; 
+            text-align: center; text-decoration: none; 
+            border-radius: 5px; font-weight: bold; font-size: 14px; 
+        }
+        .distance-info { 
+            color: #d32f2f; font-weight: bold; font-size: 13px; 
+            margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;
+        }
+        
+        /* Blue Dot for Live Location */
+        .user-dot { 
+            background: #007bff; width: 15px; height: 15px; 
+            border-radius: 50%; border: 2px solid white; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
+        }
     </style>
 </head>
 <body>
-<div id="map"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    var map = L.map('map').setView([26.36, 83.75], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Live Location tracking
-    var userMarker;
-    map.on('locationfound', function(e) {
-        if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker(e.latlng, {icon: L.divIcon({className: 'user-dot'})}).addTo(map);
+<div class="search-container">
+    <input type="text" id="villageSearch" placeholder="Gaon ka naam khojein..." onkeyup="searchVillage()">
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // 1. Map Layers Setup (Normal & Satellite)
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+        attribution: '© OpenStreetMap' 
     });
+    
+    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+    });
+
+    var map = L.map('map', {
+        center: [26.34, 83.75],
+        zoom: 11,
+        layers: [osm] 
+    });
+
+    var baseMaps = {
+        "Normal Road Map": osm,
+        "Satellite View": satellite
+    };
+    L.control.layers(baseMaps).addTo(map);
+
+    // 2. Distance Calculation Logic
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        var R = 6371; // Earth Radius in KM
+        var dLat = (lat2-lat1) * Math.PI / 180;
+        var dLon = (lon2-lon1) * Math.PI / 180;
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return (R * c).toFixed(2); 
+    }
+
+    // 3. Live Location Tracking
+    var userMarker, userLatLng;
+    map.on('locationfound', function(e) {
+        userLatLng = e.latlng;
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.marker(e.latlng, { 
+            icon: L.divIcon({className: 'user-dot'}) 
+        }).addTo(map).bindPopup("Aap Yahan Hain");
+    });
+
     map.locate({watch: true, enableHighAccuracy: true});
 
-    // Sare 32 villages ka data
+    // 4. Village Data (Total 32 Villages)
     var villages = [
-        {n: "MOHRA", c: [26.3414606, 83.630171]},
-        {n: "GANDER", c: [26.4003528, 83.7946722]},
-        {n: "PIPARA KHEMKARAN", c: [26.3668061, 83.809102]},
-        {n: "BIRPURMISIR", c: [26.3605785, 83.8257077]},
-        {n: "SERWAONBHANAULI", c: [26.3685501, 83.8305524]},
-        {n: "AMRITKUNDA", c: [26.3542772, 83.8142119]},
-        {n: "POKHAR BHINDA", c: [26.3450419, 83.8005519]},
-        {n: "BANJARIA", c: [26.3425068, 83.7875302]},
-        {n: "TILOULI", c: [26.3111121, 83.792178]},
-        {n: "MARKARA", c: [26.3221854, 83.7983656]},
-        {n: "AJAIPURA", c: [26.3785429, 83.6997074]},
-        {n: "NAIPUR", c: [26.3575165, 83.7010037]},
-        {n: "HARNAHI", c: [26.3582377, 83.6849608]},
-        {n: "HANAUTA", c: [26.3619095, 83.6732463]},
-        {n: "DUMARI", c: [26.3697109, 83.754739]},
-        {n: "BHALUANI", c: [26.3671337, 83.7689413]},
-        {n: "HARDEORA", c: [26.3436546, 83.7169443]},
-        {n: "TALAURA", c: [26.3486909, 83.6966474]},
-        {n: "BIJAPUR GHHANGTOUR", c: [26.3497392, 83.8431547]},
-        {n: "JIGANI SONHOULI", c: [26.3287496, 83.8150883]},
-        {n: "SONARI", c: [26.3367081, 83.766701]},
-        {n: "BANGAROULI", c: [26.3306858, 83.7845331]},
-        {n: "HARNADIH URF MAHAI KHAS", c: [26.3014012, 83.7469348]},
-        {n: "KHIRIA", c: [26.3225045, 83.7380975]},
-        {n: "KARUANA", c: [26.3205442, 83.7565875]},
-        {n: "MISRA KHUDIA", c: [26.3263522, 83.7543065]},
-        {n: "BADIPUR", c: [26.3549913, 83.7516825]},
-        {n: "BARAULI", c: [26.3450663, 83.7244576]},
-        {n: "PARSIA CHAUBEY", c: [26.3111954, 83.7148098]},
-        {n: "BARAON", c: [26.3479327, 83.6479107]},
-        {n: "BHIKHAMPURA", c: [26.3234769, 83.6978126]},
-        {n: "BADYA HARDO", c: [26.3216966, 83.6912572]}
+        {n: "MOHRA", c: [26.3414606, 83.630171]}, {n: "GANDER", c: [26.4003528, 83.7946722]},
+        {n: "PIPARA KHEMKARAN", c: [26.3668061, 83.809102]}, {n: "BIRPURMISIR", c: [26.3605785, 83.8257077]},
+        {n: "SERWAONBHANAULI", c: [26.3685501, 83.8305524]}, {n: "AMRITKUNDA", c: [26.3542772, 83.8142119]},
+        {n: "POKHAR BHINDA", c: [26.3450419, 83.8005519]}, {n: "BANJARIA", c: [26.3425068, 83.7875302]},
+        {n: "TILOULI", c: [26.3111121, 83.792178]}, {n: "MARKARA", c: [26.3221854, 83.7983656]},
+        {n: "AJAIPURA", c: [26.3785429, 83.6997074]}, {n: "NAIPUR", c: [26.3575165, 83.7010037]},
+        {n: "HARNAHI", c: [26.3582377, 83.6849608]}, {n: "HANAUTA", c: [26.3619095, 83.6732463]},
+        {n: "DUMARI", c: [26.3697109, 83.754739]}, {n: "BHALUANI", c: [26.3671337, 83.7689413]},
+        {n: "HARDEORA", c: [26.3436546, 83.7169443]}, {n: "TALAURA", c: [26.3486909, 83.6966474]},
+        {n: "BIJAPUR GHHANGTOUR", c: [26.3497392, 83.8431547]}, {n: "JIGANI SONHOULI", c: [26.3287496, 83.8150883]},
+        {n: "SONARI", c: [26.3367081, 83.766701]}, {n: "BANGAROULI", c: [26.3306858, 83.7845331]},
+        {n: "HARNADIH URF MAHAI KHAS", c: [26.3014012, 83.7469348]}, {n: "KHIRIA", c: [26.3225045, 83.7380975]},
+        {n: "KARUANA", c: [26.3205442, 83.7565875]}, {n: "MISRA KHUDIA", c: [26.3263522, 83.7543065]},
+        {n: "BADIPUR", c: [26.3549913, 83.7516825]}, {n: "BARAULI", c: [26.3450663, 83.7244576]},
+        {n: "PARSIA CHAUBEY", c: [26.3111954, 83.7148098]}, {n: "BARAON", c: [26.3479327, 83.6479107]},
+        {n: "BHIKHAMPURA", c: [26.3234769, 83.6978126]}, {n: "BADYA HARDO", c: [26.3216966, 83.6912572]}
     ];
 
-    villages.forEach(function(v) {
-        var gUrl = "https://www.google.com/maps/dir/?api=1&destination=" + v.c[0] + "," + v.c[1];
-        L.marker(v.c, {icon: L.divIcon({html: '<div style="background:red;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>', className:''})})
-        .addTo(map).bindPopup("<b>Gaon: " + v.n + "</b><br><a href='" + gUrl + "' target='_blank' class='nav-btn'>Rasta Dekhein (Navigation)</a>");
-    });
-</script>
-</body>
+    var markers = [];
 
+    villages.forEach(function(v) {
+        var gMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + v.c[0] + "," + v.c[1];
+        
+        var redDot = L.divIcon({
+            html: '<div style="background:red; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>',
+            className: '', iconSize: [12, 12]
+        });
+
+        var marker = L.marker(v.c, {icon: redDot}).addTo(map);
+        markers.push({name: v.n, marker: marker});
+
+        marker.on('click', function() {
+            var distance = userLatLng ? calculateDistance(userLatLng.lat, userLatLng.lng, v.c[0], v.c[1]) + " KM" : "GPS On Karein";
+            var popupContent = "<b>Village: " + v.n + "</b><br>" +
+                               "<div class='distance-info'>Aap se doori: " + distance + "</div>" +
+                               "<a href='" + gMapsUrl + "' target='_blank' class='nav-btn'>Rasta Dekhein</a>";
+            marker.bindPopup(popupContent).openPopup();
+        });
+    });
+
+    // 5. Search Functionality
+    function searchVillage() {
+        var term = document.getElementById('villageSearch').value.toUpperCase();
+        markers.forEach(function(item) {
+            if (item.name.includes(term) && term !== "") {
+                map.setView(item.marker.getLatLng(), 15);
+                item.marker.openPopup();
+            }
+        });
+    }
+</script>
+
+</body>
 </html>
