@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <title>Saurabh Village Map - Blue Outline</title>
+    <title>Saurabh Pro Village Tracker + Report</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -9,67 +9,44 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        .search-container {
-            position: absolute; top: 10px; left: 50px; z-index: 1000;
-            background: white; padding: 5px; border-radius: 8px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; gap: 5px;
-        }
-        #villageSearch { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 180px; font-size: 14px; outline: none; }
+        .controls { position: absolute; top: 10px; left: 50px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .search-box { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; width: 220px; }
         
-        /* Village Name Label Styling */
-        .village-label {
-            background: none !important;
-            border: none !important;
-            box-shadow: none !important;
-            color: black !important;
-            font-weight: bold !important;
-            font-size: 12px !important;
-            text-shadow: 1px 1px 2px white;
-        }
+        .report-btn { background: #000; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 
-        /* Niche ka arrow (Aero) Blue karne ke liye */
-        .leaflet-tooltip-top:before {
-            border-top-color: #00008B !important; /* Dark Blue Arrow */
-        }
+        .village-label { background: none !important; border: none !important; color: black !important; font-weight: bold !important; font-size: 11px !important; text-shadow: 1px 1px 2px white; }
 
-        .nav-btn { display: block; margin-top: 10px; padding: 10px; background: #4285F4; color: white !important; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; }
-        .distance-info { color: #d32f2f; font-weight: bold; font-size: 13px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px; }
-        .user-dot { background: #007bff; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        /* Popup UI */
+        .visit-btn { display: block; margin-top: 8px; padding: 10px; color: white !important; text-align: center; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; width: 100%; }
+        .btn-red { background: #ea4335; }
+        .btn-yellow { background: #fbbc05; color: black !important; }
+        .btn-green { background: #34a853; }
+        
+        .note-area { width: 100%; margin-top: 8px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 12px; height: 60px; box-sizing: border-box; }
+        .save-note-btn { background: #4285F4; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; margin-top: 5px; cursor: pointer; }
+        
+        .user-dot { background: #007bff; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
     </style>
 </head>
 <body>
 
-<div class="search-container">
-    <input type="text" id="villageSearch" placeholder="Gaon khojein..." onkeyup="searchVillage()">
+<div class="controls">
+    <input type="text" id="villageSearch" class="search-box" placeholder="Gaon khojein..." onkeyup="searchVillage()">
+    <button class="report-btn" onclick="downloadReport()">📥 Download Report (CSV)</button>
+    <div style="background: white; padding: 5px; border-radius: 5px; font-size: 11px; font-weight: bold; text-align: center;">
+        🔴 0 | 🟡 1 | 🟢 2 Visits
+    </div>
 </div>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
-    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellite' });
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
 
     var map = L.map('map', { center: [26.34, 83.75], zoom: 11, layers: [osm] });
-
-    var baseMaps = { "Normal Map": osm, "Satellite View": satellite };
-    L.control.layers(baseMaps).addTo(map);
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371;
-        var dLat = (lat2-lat1) * Math.PI / 180;
-        var dLon = (lon2-lon1) * Math.PI / 180;
-        var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
-    }
-
-    var userMarker, userLatLng;
-    map.on('locationfound', function(e) {
-        userLatLng = e.latlng;
-        if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker(e.latlng, { icon: L.divIcon({className: 'user-dot'}) }).addTo(map).bindPopup("Aap Yahan Hain");
-    });
-    map.locate({watch: true, enableHighAccuracy: true});
+    L.control.layers({ "Road": osm, "Satellite": satellite }).addTo(map);
 
     var villages = [
         {n: "MOHRA", c: [26.3414606, 83.630171]}, {n: "GANDER", c: [26.4003528, 83.7946722]},
@@ -90,46 +67,74 @@
         {n: "BHIKHAMPURA", c: [26.3234769, 83.6978126]}, {n: "BADYA HARDO", c: [26.3216966, 83.6912572]}
     ];
 
+    var trackerStore = JSON.parse(localStorage.getItem('saurabhTracker') || '{}');
     var markers = [];
 
-    villages.forEach(function(v) {
-        var gMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + v.c[0] + "," + v.c[1];
-        
-        // --- Red Dot with Dark Blue Outline ---
-        var redDot = L.divIcon({
-            html: '<div style="background:red; width:10px; height:10px; border-radius:50%; border:2px solid #00008B;"></div>',
-            className: '', iconSize: [10, 10]
-        });
-
-        var marker = L.marker(v.c, {icon: redDot}).addTo(map);
-        
-        marker.bindTooltip(v.n, {
-            permanent: true, 
-            direction: 'top', 
-            className: 'village-label',
-            offset: [0, -8]
-        });
-
-        markers.push({name: v.n, marker: marker});
-
-        marker.on('click', function() {
-            var distance = userLatLng ? calculateDistance(userLatLng.lat, userLatLng.lng, v.c[0], v.c[1]) + " KM" : "GPS On Karein";
-            var popupContent = "<b>Village: " + v.n + "</b><br>" +
-                               "<div class='distance-info'>Aap se doori: " + distance + "</div>" +
-                               "<a href='" + gMapsUrl + "' target='_blank' class='nav-btn'>Rasta Dekhein</a>";
-            marker.bindPopup(popupContent).openPopup();
-        });
-    });
-
-    function searchVillage() {
-        var term = document.getElementById('villageSearch').value.toUpperCase();
-        markers.forEach(function(item) {
-            if (item.name.includes(term) && term !== "") {
-                map.setView(item.marker.getLatLng(), 15);
-                item.marker.openPopup();
-            }
+    function renderMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+        villages.forEach(function(v) {
+            var data = trackerStore[v.n] || { count: 0, note: "", dates: [] };
+            var color = data.count >= 2 ? "#34a853" : (data.count === 1 ? "#fbbc05" : "red");
+            var icon = L.divIcon({
+                html: `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid #00008B;"></div>`,
+                className: '', iconSize: [12, 12]
+            });
+            var marker = L.marker(v.c, {icon: icon}).addTo(map);
+            marker.bindTooltip(v.n, { permanent: true, direction: 'top', className: 'village-label', offset: [0, -8] });
+            marker.on('click', function() {
+                var btnClass = data.count === 0 ? "btn-red" : (data.count === 1 ? "btn-yellow" : "btn-green");
+                var btnText = data.count === 0 ? "1st Visit Done" : (data.count === 1 ? "2nd Visit Done" : "Reset Tracker");
+                var popupHtml = `<div style="min-width:180px"><b>${v.n}</b><br>Visits: ${data.count}
+                    <button class="visit-btn ${btnClass}" onclick="updateVisit('${v.n}')">${btnText}</button>
+                    <textarea id="nt-${v.n}" class="note-area" placeholder="Note...">${data.note || ''}</textarea>
+                    <button class="save-note-btn" onclick="saveNote('${v.n}')">💾 Save Note</button></div>`;
+                marker.bindPopup(popupHtml).openPopup();
+            });
+            markers.push(marker);
         });
     }
+
+    window.updateVisit = function(n) {
+        if (!trackerStore[n]) trackerStore[n] = { count: 0, note: "", dates: [] };
+        if (trackerStore[n].count < 2) {
+            trackerStore[n].count++;
+            trackerStore[n].dates.push(new Date().toLocaleString('hi-IN'));
+        } else { trackerStore[n].count = 0; trackerStore[n].dates = []; }
+        localStorage.setItem('saurabhTracker', JSON.stringify(trackerStore));
+        renderMarkers(); map.closePopup();
+    };
+
+    window.saveNote = function(n) {
+        trackerStore[n].note = document.getElementById('nt-' + n).value;
+        localStorage.setItem('saurabhTracker', JSON.stringify(trackerStore));
+        alert("Note saved!");
+    };
+
+    window.downloadReport = function() {
+        let csv = "Village Name,Visit Count,Dates,Notes\n";
+        villages.forEach(v => {
+            let d = trackerStore[v.n] || {count:0, dates:[], note:""};
+            csv += `${v.n},${d.count},"${d.dates.join(' | ')}","${d.note.replace(/"/g, '""')}"\n`;
+        });
+        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Saurabh_Field_Report.csv";
+        link.click();
+    };
+
+    window.searchVillage = function() {
+        var term = document.getElementById('villageSearch').value.toUpperCase();
+        villages.forEach(v => { if(v.n.includes(term) && term!=="") map.setView(v.c, 15); });
+    };
+
+    map.locate({watch: true, enableHighAccuracy: true});
+    map.on('locationfound', e => {
+        if (window.uM) map.removeLayer(window.uM);
+        window.uM = L.marker(e.latlng, { icon: L.divIcon({className: 'user-dot'}) }).addTo(map);
+    });
+    renderMarkers();
 </script>
 </body>
 </html>
