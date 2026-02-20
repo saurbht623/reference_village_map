@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <title>Saurabh Village Tracker - Final</title>
+    <title>Saurabh Village Tracker - Simple</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -10,23 +10,20 @@
         #map { height: 100vh; width: 100%; }
         
         .controls { position: absolute; top: 10px; left: 50px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .search-box { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; width: 220px; }
+        .search-box { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; width: 200px; }
         
-        .report-btn { background: #000; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .report-btn { background: #000; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
 
         .village-label { background: none !important; border: none !important; color: black !important; font-weight: bold !important; font-size: 11px !important; text-shadow: 1px 1px 2px white; }
 
         /* Popup Buttons */
-        .visit-btn { display: block; margin-top: 5px; padding: 8px; color: white !important; text-align: center; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 12px; }
+        .visit-btn { display: block; margin-top: 5px; padding: 10px; color: white !important; text-align: center; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 13px; }
         .btn-red { background: #ea4335; }
         .btn-yellow { background: #fbbc05; color: black !important; }
         .btn-green { background: #34a853; }
-        .btn-reset { background: #5f6368; margin-top: 5px; } /* Reset Button */
+        .btn-reset { background: #5f6368; margin-top: 8px; font-size: 11px; padding: 6px; }
         
-        .nav-link { display: block; margin-top: 8px; text-align: center; background: #4285F4; color: white !important; font-weight: bold; text-decoration: none; padding: 8px; border-radius: 5px; font-size: 12px; }
-        
-        .note-area { width: 100%; margin-top: 8px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 12px; height: 50px; box-sizing: border-box; }
-        .save-note-btn { background: #1a73e8; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; margin-top: 5px; cursor: pointer; font-size: 11px; }
+        .nav-link { display: block; margin-top: 8px; text-align: center; background: #4285F4; color: white !important; font-weight: bold; text-decoration: none; padding: 10px; border-radius: 5px; font-size: 13px; }
         
         .user-dot { background: #007bff; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
     </style>
@@ -46,7 +43,7 @@
     var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
 
     var map = L.map('map', { center: [26.34, 83.75], zoom: 11, layers: [osm] });
-    L.control.layers({ "Road": osm, "Satellite": satellite }).addTo(map);
+    L.control.layers({ "Road Map": osm, "Satellite View": satellite }).addTo(map);
 
     var villages = [
         {n: "MOHRA", c: [26.3414606, 83.630171]}, {n: "GANDER", c: [26.4003528, 83.7946722]},
@@ -74,7 +71,7 @@
         markers.forEach(m => map.removeLayer(m));
         markers = [];
         villages.forEach(function(v) {
-            var data = trackerStore[v.n] || { count: 0, note: "", dates: [] };
+            var data = trackerStore[v.n] || { count: 0, dates: [] };
             var color = data.count >= 2 ? "#34a853" : (data.count === 1 ? "#fbbc05" : "red");
             var icon = L.divIcon({
                 html: `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid #00008B;"></div>`,
@@ -87,12 +84,10 @@
                 var btnClass = data.count === 0 ? "btn-red" : (data.count === 1 ? "btn-yellow" : "btn-green");
                 var btnText = data.count === 0 ? "Mark 1st Visit" : (data.count === 1 ? "Mark 2nd Visit" : "2 Visits Done ✅");
                 
-                var popupHtml = `<div style="min-width:180px"><b>${v.n}</b><br>
+                var popupHtml = `<div style="min-width:160px; text-align:center;"><b>${v.n}</b><br>
                     <button class="visit-btn ${btnClass}" onclick="updateVisit('${v.n}')">${btnText}</button>
-                    <button class="visit-btn btn-reset" onclick="resetVisit('${v.n}')">🔄 Reset Visit</button>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${v.c[0]},${v.c[1]}" target="_blank" class="nav-link">📍 Rasta Dekhein (Maps)</a>
-                    <textarea id="nt-${v.n}" class="note-area" placeholder="Notes...">${data.note || ''}</textarea>
-                    <button class="save-note-btn" onclick="saveNote('${v.n}')">💾 Save Note</button></div>`;
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${v.c[0]},${v.c[1]}" target="_blank" class="nav-link">📍 Rasta Dekhein</a>
+                    <button class="visit-btn btn-reset" onclick="resetVisit('${v.n}')">🔄 Reset All Visits</button></div>`;
                 marker.bindPopup(popupHtml).openPopup();
             });
             markers.push(marker);
@@ -100,7 +95,7 @@
     }
 
     window.updateVisit = function(n) {
-        if (!trackerStore[n]) trackerStore[n] = { count: 0, note: "", dates: [] };
+        if (!trackerStore[n]) trackerStore[n] = { count: 0, dates: [] };
         if (trackerStore[n].count < 2) {
             trackerStore[n].count++;
             trackerStore[n].dates.push(new Date().toLocaleString('hi-IN'));
@@ -110,30 +105,23 @@
     };
 
     window.resetVisit = function(n) {
-        if (confirm(n + " ka data reset karein?")) {
-            trackerStore[n] = { count: 0, note: "", dates: [] };
+        if (confirm(n + " ka visit data reset karein?")) {
+            trackerStore[n] = { count: 0, dates: [] };
             localStorage.setItem('saurabhTracker', JSON.stringify(trackerStore));
             renderMarkers(); map.closePopup();
         }
     };
 
-    window.saveNote = function(n) {
-        if (!trackerStore[n]) trackerStore[n] = { count: 0, note: "", dates: [] };
-        trackerStore[n].note = document.getElementById('nt-' + n).value;
-        localStorage.setItem('saurabhTracker', JSON.stringify(trackerStore));
-        alert("Note saved!");
-    };
-
     window.downloadReport = function() {
-        let csv = "Village Name,Visits,Dates,Notes\n";
+        let csv = "Village Name,Total Visits,Dates\n";
         villages.forEach(v => {
-            let d = trackerStore[v.n] || {count:0, dates:[], note:""};
-            csv += `${v.n},${d.count},"${d.dates.join(' | ')}","${d.note}"\n`;
+            let d = trackerStore[v.n] || {count:0, dates:[]};
+            csv += `${v.n},${d.count},"${d.dates.join(' | ')}"\n`;
         });
         let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         let link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "Field_Report.csv";
+        link.download = "Saurabh_Visit_Report.csv";
         link.click();
     };
 
